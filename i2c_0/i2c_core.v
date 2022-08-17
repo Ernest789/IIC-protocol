@@ -155,6 +155,16 @@ module i2c_core (
     end
 
 // state transition condition
+reg sda_in_r;  // keep sda_in for one i2c_clk to handle ack-status
+    always @(posedge i2c_clk ,negedge rstn) begin
+         if(!rstn) begin
+            sda_in_r <= 1'b0;
+        end
+        else begin
+            sda_in_r <= sda_in;
+        end
+    end
+
     always @(*) begin
         case (current_state)
         // common status
@@ -209,14 +219,14 @@ module i2c_core (
                     next_state = next_state; 
             end
             MEM_ADDR_L:begin
-                if(cnt_i2c_clk == 2'd3 && cnt_data == 3'd0) //////////////////////////////////////////
+                if(cnt_i2c_clk == 2'd3 && cnt_data == 3'd0)
                     next_state = ACK_2;
                 else
                     next_state = next_state;
             end
             ACK_2:begin
                 if(cnt_i2c_clk == 2'd3) begin
-                    if( sda_in_r == 1'b0 ) begin
+                    if(sda_in_r == 1'b0 ) begin
                         if(rd_wr_en == 1'b0)
                             next_state = DATA_WR;
                         else
@@ -278,7 +288,7 @@ module i2c_core (
             end
             ACK_WR:begin
                 if(cnt_i2c_clk == 2'd3) begin
-                    if(sda_in == 1'd0)
+                    if(sda_in_r == 1'd0)
                         next_state = STOP;
                     else
                         next_state = STOP;
@@ -292,14 +302,11 @@ module i2c_core (
 // actions in each state
     reg sda_r;
     reg start_r;
-    reg sda_in_r;  // keep sda level when acknowledge
     always @(posedge i2c_clk ,negedge rstn) begin
          if(!rstn) begin
-            sda_in_r <= 1'b1;
             start_r <= 1'b0;
         end
         else begin
-            sda_in_r <= 1'b0;///////////////////////////////////////////////////////////////////////sda_in_r
             start_r <= start;
         end
     end
